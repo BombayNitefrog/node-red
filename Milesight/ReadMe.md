@@ -1,9 +1,10 @@
-# Instructions
+# LORA to modbus TCP
+## Instructions
 - Set the device UIDs in the switch block.
 - Set the modbus address in the "UNIT" Environment Vaiable in the subflow
 
-# Modbus Addresses
-## AM103+L
+## Modbus Addresses
+### AM103+L
 | Mobus address | Type | Function |
 |--|--|--|
 | 1 | Holding | Battery * 10 (%) |
