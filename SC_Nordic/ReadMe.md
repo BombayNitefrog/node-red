@@ -14,6 +14,6 @@ x = device number
 | 100 |  2 |  input |  heartbeat to SC nordic (expects a changing, random, non-zero number) |
 | 101 |  x0 |  coil |  Command from SC nordic (true is control, false is auto) |
 | 101 |  x1 |  coil |  return actual activation status of device |
-| 101 |  x2 |  input |  Step Command for device |
+| 101 |  x2 |  holding |  Step Command for device |
 | 101 | x3 | holding  | return actual step status of device |
 
