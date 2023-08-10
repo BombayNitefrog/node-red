@@ -9,7 +9,7 @@ set the topics and copy devices to match actual topics and number of devices.
 x = device number
 
 | deviceAddress |  address |  type |  function |
-| --- | ------------ | ------------ | ------------ |
+| --- | ---| --- | --- |
 | 100 |  1 | coil  |  hearbeat from SCnordic (false if problem) |
 | 100 |  2 |  input |  heartbeat to SC nordic (expects a changing, random, non-zero number) |
 | 101 |  x0 |  coil |  Command from SC nordic (true is control, false is auto) |
