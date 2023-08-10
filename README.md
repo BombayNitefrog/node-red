@@ -1,2 +1,2 @@
 # node-red
-Here are published Node-Red stuff for different BMS applications.
+Here I will publish Node-Red stuff for different BMS applications.
