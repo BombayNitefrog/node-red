@@ -12,6 +12,6 @@
 | 3 | Holding | Humidity * 10 (%RH) |
 | 4 | Holding | Temperature * 10 (°C) |
 | 5 | Holding | RSSI * -1 (dBmW)
-| 6 | Holdnig | ( SNR + 100 ) * 10 |
+| 6 | Holdnig | ( SNR + 100 ) * 10 (dB) |
 | 7 | Holding | 0 = OK, 1 = fault (5 hours since last packet) |
 | 8 | Holding | Spread Factor |
