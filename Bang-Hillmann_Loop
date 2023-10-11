@@ -1,0 +1,603 @@
+[
+    {
+        "id": "2e403992682b1068",
+        "type": "tab",
+        "label": "HeatingCircuit",
+        "disabled": false,
+        "info": "",
+        "env": []
+    },
+    {
+        "id": "caaec272859944e1",
+        "type": "change",
+        "z": "2e403992682b1068",
+        "name": "ProcessValue",
+        "rules": [
+            {
+                "t": "move",
+                "p": "payload[1]",
+                "pt": "msg",
+                "to": "abc.processValue",
+                "tot": "msg"
+            },
+            {
+                "t": "delete",
+                "p": "payload",
+                "pt": "msg"
+            },
+            {
+                "t": "move",
+                "p": "abc.processValue",
+                "pt": "msg",
+                "to": "payload.processValue",
+                "tot": "msg"
+            }
+        ],
+        "action": "",
+        "property": "",
+        "from": "",
+        "to": "",
+        "reg": false,
+        "x": 480,
+        "y": 660,
+        "wires": [
+            [
+                "2e17866f13810dad"
+            ]
+        ]
+    },
+    {
+        "id": "b38dfdf721280ac9",
+        "type": "change",
+        "z": "2e403992682b1068",
+        "name": "Setpoint",
+        "rules": [
+            {
+                "t": "move",
+                "p": "payload",
+                "pt": "msg",
+                "to": "payload.setpoint",
+                "tot": "msg"
+            }
+        ],
+        "action": "",
+        "property": "",
+        "from": "",
+        "to": "",
+        "reg": false,
+        "x": 460,
+        "y": 720,
+        "wires": [
+            [
+                "2e17866f13810dad"
+            ]
+        ]
+    },
+    {
+        "id": "d1982510e1b4af21",
+        "type": "change",
+        "z": "2e403992682b1068",
+        "name": "minPV",
+        "rules": [
+            {
+                "t": "move",
+                "p": "payload",
+                "pt": "msg",
+                "to": "payload.minPV",
+                "tot": "msg"
+            }
+        ],
+        "action": "",
+        "property": "",
+        "from": "",
+        "to": "",
+        "reg": false,
+        "x": 450,
+        "y": 780,
+        "wires": [
+            [
+                "2e17866f13810dad"
+            ]
+        ]
+    },
+    {
+        "id": "0bc518ee6f4e8730",
+        "type": "change",
+        "z": "2e403992682b1068",
+        "name": "maxPV",
+        "rules": [
+            {
+                "t": "move",
+                "p": "payload",
+                "pt": "msg",
+                "to": "payload.maxPV",
+                "tot": "msg"
+            }
+        ],
+        "action": "",
+        "property": "",
+        "from": "",
+        "to": "",
+        "reg": false,
+        "x": 460,
+        "y": 840,
+        "wires": [
+            [
+                "2e17866f13810dad"
+            ]
+        ]
+    },
+    {
+        "id": "cd6220b42872b360",
+        "type": "comment",
+        "z": "2e403992682b1068",
+        "name": "TemperatureRegulation",
+        "info": "",
+        "x": 840,
+        "y": 700,
+        "wires": []
+    },
+    {
+        "id": "0e25c360d1eadcd8",
+        "type": "change",
+        "z": "2e403992682b1068",
+        "name": "",
+        "rules": [
+            {
+                "t": "move",
+                "p": "payload.output",
+                "pt": "msg",
+                "to": "payload",
+                "tot": "msg"
+            }
+        ],
+        "action": "",
+        "property": "",
+        "from": "",
+        "to": "",
+        "reg": false,
+        "x": 1210,
+        "y": 760,
+        "wires": [
+            [
+                "4e77716c63e48744"
+            ]
+        ]
+    },
+    {
+        "id": "2e17866f13810dad",
+        "type": "function",
+        "z": "2e403992682b1068",
+        "name": "Bang-Hillman Loop Controller",
+        "func": "/*+ ------------ Load message ------------ +*/\n    var input = msg.payload;\n\n\n\n/*+ ------------ Set contexts ------------ +*/\n    // value of process controlled by output\n    if (input.hasOwnProperty('processValue')) {\n        context.processValue = Number(input.processValue);\n    }\n\n    // setpoint of processValue controlled by output\n    if (input.hasOwnProperty('setpoint')) {\n        context.setpoint = Number(input.setpoint);\n    } \n\n    // processValue expected when controlValue is 100%\n    if (input.hasOwnProperty('maxPV')) {\n        context.maxPV = Number(input.maxPV);\n    }\n\n    // processValue expected when controlValue is 0%\n    if (input.hasOwnProperty('minPV')) {\n        context.minPV = Number(input.minPV);\n    }\n\n    // Enable property. If false, output will allways be 0% and no calculations are done\n    if (input.hasOwnProperty('enable')) {\n        context.enable = Boolean(input.enable);\n    }\n\n    // save sequencing parameters\n    if (input.hasOwnProperty('sequencing')) {\n        if (input.sequencing.hasOwnProperty('minDirect')) {\n            context.minDirect = input.sequencing.minDirect;\n        }\n        if (input.sequencinghasOwnProperty('minIndirect')) {\n            context.minIndirect = input.sequencingminIndirect;\n        }\n        if (input.sequencinghasOwnProperty('maxDirect')) {\n            context.maxDirect = input.sequencingmaxDirect;\n        }\n        if (input.sequencinghasOwnProperty('maxIndirect')) {\n            context.maxIndirect = input.sequencingmaxIndirect;\n        }\n    }\n    \n\n\n\n/*+ ------------ output guess and PV Model Position ------------ +*/\n    // consider a graph, where the Y-axis is the processVariable and the X-axis is the loop output(0-100%). This is our \"model\"\n    // the output guess is the distance on the X-axis, from 0 to the setpoint in the model\n    // the PV Model Position, is the distance on the X-axis, from 0 to the process value in the model   \n        // Find direction of the loop\n        var direction = \"indirect\";\n       \n        if (context.maxPV < context.minPV ) {\n            var min = context.minPV;\n            var max = context.maxPV;\n            context.minPV = max;\n            context.maxPV = min;\n            direction = \"direct\";\n        }\n\n        // calculate area of operation\n        var areaOfOperation = context.maxPV - context.minPV;\n\n        // default\n        var outputGuess = 0;\n        var pvModelPosition = 0;\n\n        // linear process characteristic\n        if (context.characteristic == 1){\n            outputGuess = ((context.setpoint - context.minPV) * 100.00) / areaOfOperation;\n            pvModelPosition = ((context.processValue - context.minPV) * 100.00) / areaOfOperation;\n        }\n\n        // exponential process characteristic\n        if (context.characteristic == 2) {\n            // calculate curve parameters\n            var b = ((areaOfOperation + 1)) ** (1 / 100);\n            outputGuess = Math.log((context.setpoint - context.minPV +1)) / Math.log(b);\n            pvModelPosition = Math.log((context.processValue - context.minPV +1)) / Math.log(b);\n            // sanitise\n            if( isNaN(outputGuess) ){ outputGuess = 0 }\n            if (isNaN(pvModelPosition)) { pvModelPosition = 0 }\n        }\n\n        // calulate the deviation of the process value from the setpoint\n        var setpointDeviation = 0;\n        if (direction == \"direct\") {\n            setpointDeviation = pvModelPosition - outputGuess;\n        } else {\n            setpointDeviation = outputGuess - pvModelPosition;\n        }\n\n\n/*+ ------------ Initiation ------------ +*/\n    // When the loop is enabled, we must wait the entire Time Constant time, before reacting to the change in Process value\n    var time = Date.now();\n    var timeSinceLast = (time - context.lastTime) / 1000;\n\n    // store the time of loop enable\n    if (context.enable && !context.lastEnable ) {\n        context.enableTime = time;\n        context.startup = true;\n        // make sure to reset any timeconstant calculations\n        context.flag1 = false;\n        context.flag2 = false;\n    }\n\n    // create a variable for the output\n    var output = 0;\n    \n    // if the loop is enabled, set the output\n    if( context.enable ) {\n        if ((time - context.enableTime) / 1000 > context.timeConstant) {\n            react();\n            context.startup = false;\n        } else {\n            // if the process value passes the setpoint, by more than 10 %p, we must react.\n            if (pvModelPosition > outputGuess + 10 && direction == \"indirect\"){\n                react();\n            } else if (pvModelPosition < outputGuess - 10 && direction == \"direct\") {\n                react();\n            } else {\n                output = outputGuess;\n            }\n        }\n    } else {\n        node.status({ fill: \"yellow\", shape: \"dot\", text: \"disabled\" });\n        context.startup = false;\n    }\n    \n\n/*+ ------------ calculate Time Constant ------------ +*/\n    // The Time Constant is ideally the time it takes for the Process Value to stabilize after a change in the output.\n    // In order to automate the loop, we guesstimate the Time Constant, from the deviation from the setpoint over time.\n    if(context.enable) {\n        if (!context.startup) {\n            if (Math.abs(setpointDeviation) > areaOfOperation * 0.1) {\n                if (!context.flag1){\n                    context.deviationTime1 = time;\n                }\n                context.flag1 = true;\n                context.flag2 = false;\n            } \n            // We need a bit of hysteresis, to avoid faulty calculations from unstable Process Values\n            if (Math.abs(setpointDeviation) < areaOfOperation * 0.05) {\n                if(!context.flag2 && context.flag1) {\n                    context.deviationTime2 = time;\n                    var deviationtime = (context.deviationTime2 - context.deviationTime1) / 1000;\n                    // if the deviationtime is more than out our current Time Constant, the loop should be faster\n                    if (deviationtime > context.timeConstant) {\n                        context.timeConstant = context.timeConstant + ((context.timeConstant - deviationtime) * 0.5); \n                    }\n                    // if the deviationtime is less than out our current Time Constant, the loop should be slower\n                    // we make the loop more slow than fast, this is to avoid overcompensation. \n                    // This helps to make the loop more likely to raise the time constant and thereby make the loop more stable\n                    if (deviationtime < context.timeConstant) {\n                        context.timeConstant = context.timeConstant + ((context.timeConstant - deviationtime) * 1 )  ;\n                    }\n\n                }\n                context.flag2 = true;\n                context.flag1 = false;\n            }\n        }\n    }\n    \n\n\n/*+ ------------ react to Process Value  ------------ +*/\n    // when the loop is en \"normal\" operation, we need to react to changes in the Process Value and compensate for\n    // deviations from the setpoint \n    function react(){\n        // how much more should we compensate?\n        var moreCompensation = (setpointDeviation / (context.timeConstant / timeSinceLast));\n        // add to previous compensation\n        context.compensation = context.compensation + moreCompensation;\n\n        // sanitise to never compensate output beyond 0-100\n        if (outputGuess + context.compensation > 100) { context.compensation = 100 - outputGuess}\n        if (outputGuess + context.compensation < 0) { context.compensation = 0 - outputGuess }\n\n        context.startup = false;\n    }\n\n\n/*+ ------------ save parameters for next execution ------------ +*/\n    // we'll need these later\n    context.lastTime = Date.now();\n    context.lastEnable = context.enable;\n\n/*+ ------------ calulate output ------------ +*/\n    output = outputGuess + context.compensation;\n    // sanitise (just to be sure)\n    if (output > 100) { output = 100}\n    if (output < 0) { output = 0 }\n\n    if (direction == \"direct\") {\n        output = 100 - output;\n    }\n\n    // from sequence\n    if (direction == \"direct\"){\n        if (context.minDirect) {output = 0}\n        if (context.maxDirect) { output = 100 }\n    }\n    if (direction == \"indirect\") {\n        if (context.minIndirect) { output = 0 }\n        if (context.maxIndirect) { output = 100 }\n    }\n\n    // from state\n    if (!context.enable) {\n        output = 0;\n    } else {\n        node.status({ fill: \"green\", shape: \"dot\", text: \"active: \" + output });\n    }\n\n\n\n/*+ ------------ sequencing  ------------ +*/\n    // to make it easy to link multiple loops together in a sequence, \n    // we provide msg.sequenceing parameters for next loops and previous loops on different outputs:\n        // sequencing.minDirect - force direct loop to 0%\n        // sequencing.minIndirect - force indirect loop to 0%\n        // sequencing.maxDirect - force direct loop to 100%\n        // sequencing.maxIndirect - force direct loop to 100%\n\n    var sequenceNext;\n    var sequencePrev;\n    \n    // when the loop is active, next loops should be 0% and previous loops of same direction should be 100% \n    if(output != 0) {\n        sequenceNext = {\n            minDirect: true,\n            minIndirect: true,\n            maxDirect: false,\n            maxIndirect: false\n        };\n\n        if (direction == \"direct\"){\n            sequencePrev = {\n                maxDirect: true,\n                minDirect: false,\n            };\n        }\n        if (direction == \"indirect\") {\n            sequencePrev = {\n                maxIndirect: true,\n                minIndirect: false,\n            };\n        }\n    }\n    // when the loop is inactive, next loops of same direction should be 0% and previous loops of same direction should be free to regulate\n    if (output == 0) {\n        if (direction == \"direct\") {\n            sequencePrev = {\n                maxDirect: false,\n                minDirect: false,\n            };\n            sequenceNext = {\n                minDirect: true,\n                maxDirect: false,\n            };\n\n        }\n        if (direction == \"indirect\") {\n            sequencePrev = {\n                maxIndirect: false,\n                minIndirect: false,\n            };\n            sequenceNext = {\n                maxIndirect: false,\n                minIndirect: true,\n            };\n        }\n    }\n    // when the loop is fully regulated, next loops of same direction should be free to regulate and previous loops of same direction should be 100%\n    if (output == 100) {\n        if (direction == \"direct\") {\n            sequencePrev = {\n                maxDirect: true,\n                minDirect: false,\n            };\n            sequenceNext = {\n                minDirect: false,\n                maxDirect: false,\n            };\n\n        }\n        if (direction == \"indirect\") {\n            sequencePrev = {\n                maxIndirect: true,\n                minIndirect: false,\n            };\n            sequenceNext = {\n                maxIndirect: false,\n                minIndirect: false,\n            };\n        }\n    }\n\n\n\n/*+ ------------ send messages ------------ +*/\n    var msg1 = { \n            payload: {\n                \"output\": output,\n                \"processValue\": context.processValue,\n                \"setpoint\": context.setpoint,\n                \"enable\": context.enable\n            }\n        };\n    \n    var msg2 = {\n            payload:{\n                sequencing: sequenceNext\n            }\n        };\n    var msg3 = {\n            payload: {\n                sequencing: sequencePrev\n            }\n    };\n    \n    node.send([msg1, msg2, msg3]);",
+        "outputs": 3,
+        "noerr": 0,
+        "initialize": "// Code added here will be run once\n// whenever the node is started.\n\n// Set context to make sure the loop is at ready-state\ncontext.enable = false;\ncontext.lastTime = Date.now();\ncontext.lastEnable = false;\ncontext.enableTime = 0;\ncontext.compensation = 0;\ncontext.timeConstant = 10; // seconds\ncontext.deviationTime1 = Date.now();\ncontext.deviationTime2 = Date.now();\ncontext.minDirect = false;\ncontext.minIndirect = false;\ncontext.maxDirect = false;\ncontext.maxIndirect = false;\ncontext.processValue = 0;\ncontext.setpoint = 0;\n\n// Process characteristic, 1 = linear, 2 = exponential\n// consider a graph, where the Y-axis is the processVariable and the X-axis is the loop output (0-100%).\n// how does the curve look, in a perfect world?\ncontext.characteristic = 1;",
+        "finalize": "",
+        "libs": [],
+        "x": 870,
+        "y": 760,
+        "wires": [
+            [
+                "0e25c360d1eadcd8"
+            ],
+            [],
+            []
+        ],
+        "outputLabels": [
+            "Regulation",
+            "Sequenceing of next loop",
+            "Sequenceing of previous loop"
+        ],
+        "icon": "font-awesome/fa-wheelchair"
+    },
+    {
+        "id": "4e77716c63e48744",
+        "type": "link out",
+        "z": "2e403992682b1068",
+        "name": "Valve",
+        "mode": "link",
+        "links": [
+            "386af96cdfa1c68c",
+            "8a8f0334f63bea1f"
+        ],
+        "x": 1450,
+        "y": 760,
+        "wires": [],
+        "l": true
+    },
+    {
+        "id": "66f1ad91aca94969",
+        "type": "link out",
+        "z": "2e403992682b1068",
+        "name": "Pump",
+        "mode": "link",
+        "links": [],
+        "x": 1450,
+        "y": 820,
+        "wires": [],
+        "l": true
+    },
+    {
+        "id": "842fb00fd1b918cf",
+        "type": "link out",
+        "z": "2e403992682b1068",
+        "name": "TemperatureSupplySecondary",
+        "mode": "link",
+        "links": [],
+        "x": 1230,
+        "y": 240,
+        "wires": [],
+        "l": true
+    },
+    {
+        "id": "f2ab518340045842",
+        "type": "link out",
+        "z": "2e403992682b1068",
+        "name": "TemperatureSupplyPrimary",
+        "mode": "link",
+        "links": [
+            "141ac2b630b3e4db"
+        ],
+        "x": 1220,
+        "y": 300,
+        "wires": [],
+        "l": true
+    },
+    {
+        "id": "b8ae60671491a601",
+        "type": "link out",
+        "z": "2e403992682b1068",
+        "name": "TemperatureReturnPrimary",
+        "mode": "link",
+        "links": [
+            "53e2689535922a73",
+            "0e39cf8aee062ba8"
+        ],
+        "x": 1220,
+        "y": 360,
+        "wires": [],
+        "l": true
+    },
+    {
+        "id": "e4cccb08d3dcb4a1",
+        "type": "link out",
+        "z": "2e403992682b1068",
+        "name": "SetpointTemperatureSupplySecondary",
+        "mode": "link",
+        "links": [
+            "d022ecd4e688524d"
+        ],
+        "x": 1250,
+        "y": 480,
+        "wires": [],
+        "l": true
+    },
+    {
+        "id": "2c2844f325973b17",
+        "type": "link in",
+        "z": "2e403992682b1068",
+        "name": "link in 2",
+        "links": [
+            "621aa61e58b13a0f"
+        ],
+        "x": 345,
+        "y": 660,
+        "wires": [
+            [
+                "caaec272859944e1"
+            ]
+        ]
+    },
+    {
+        "id": "53e2689535922a73",
+        "type": "link in",
+        "z": "2e403992682b1068",
+        "name": "link in 3",
+        "links": [
+            "b8ae60671491a601"
+        ],
+        "x": 345,
+        "y": 780,
+        "wires": [
+            [
+                "d1982510e1b4af21"
+            ]
+        ]
+    },
+    {
+        "id": "0e39cf8aee062ba8",
+        "type": "link in",
+        "z": "2e403992682b1068",
+        "name": "link in 4",
+        "links": [
+            "b8ae60671491a601"
+        ],
+        "x": 345,
+        "y": 900,
+        "wires": [
+            [
+                "844ff284274918ac"
+            ]
+        ]
+    },
+    {
+        "id": "d022ecd4e688524d",
+        "type": "link in",
+        "z": "2e403992682b1068",
+        "name": "link in 6",
+        "links": [
+            "e4cccb08d3dcb4a1"
+        ],
+        "x": 345,
+        "y": 720,
+        "wires": [
+            [
+                "b38dfdf721280ac9"
+            ]
+        ]
+    },
+    {
+        "id": "389ade6012fe4a70",
+        "type": "inject",
+        "z": "2e403992682b1068",
+        "name": "",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": true,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "70",
+        "payloadType": "num",
+        "x": 970,
+        "y": 300,
+        "wires": [
+            [
+                "f2ab518340045842"
+            ]
+        ]
+    },
+    {
+        "id": "bf22e8ae5deb8e1b",
+        "type": "inject",
+        "z": "2e403992682b1068",
+        "name": "",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": true,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "30",
+        "payloadType": "num",
+        "x": 970,
+        "y": 360,
+        "wires": [
+            [
+                "b8ae60671491a601"
+            ]
+        ]
+    },
+    {
+        "id": "542d58a3bbf18a14",
+        "type": "link out",
+        "z": "2e403992682b1068",
+        "name": "SetpointTemperatureReturnSecondary",
+        "mode": "link",
+        "links": [
+            "72628ec868fddbc1"
+        ],
+        "x": 1250,
+        "y": 420,
+        "wires": [],
+        "l": true
+    },
+    {
+        "id": "72628ec868fddbc1",
+        "type": "link in",
+        "z": "2e403992682b1068",
+        "name": "link in 5",
+        "links": [
+            "542d58a3bbf18a14"
+        ],
+        "x": 1465,
+        "y": 420,
+        "wires": [
+            [
+                "3bcd2b9991148dd5"
+            ]
+        ]
+    },
+    {
+        "id": "3bcd2b9991148dd5",
+        "type": "change",
+        "z": "2e403992682b1068",
+        "name": "",
+        "rules": [
+            {
+                "t": "set",
+                "p": "returnSetpoint",
+                "pt": "flow",
+                "to": "payload",
+                "tot": "msg"
+            }
+        ],
+        "action": "",
+        "property": "",
+        "from": "",
+        "to": "",
+        "reg": false,
+        "x": 1620,
+        "y": 420,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "844ff284274918ac",
+        "type": "function",
+        "z": "2e403992682b1068",
+        "name": "Hysteresis",
+        "func": "var msg = msg.payload ;\nif ( msg > flow.get(\"returnSetpoint\") + 2 ) {\n    context.enable = false;\n}\nif (msg < flow.get(\"returnSetpoint\") - 2) {\n    context.enable = true;\n}\n\n\n\nmsg = {\n    payload: {\n        enable: context.enable\n    }    \n}\n\n\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "// Code added here will be run once\n// whenever the node is started.\n\ncontext.enable = false ;",
+        "finalize": "",
+        "libs": [],
+        "x": 490,
+        "y": 900,
+        "wires": [
+            [
+                "2e17866f13810dad",
+                "1a763c7d7b95f75f"
+            ]
+        ]
+    },
+    {
+        "id": "1a763c7d7b95f75f",
+        "type": "change",
+        "z": "2e403992682b1068",
+        "name": "",
+        "rules": [
+            {
+                "t": "move",
+                "p": "payload.enable",
+                "pt": "msg",
+                "to": "payload",
+                "tot": "msg"
+            }
+        ],
+        "action": "",
+        "property": "",
+        "from": "",
+        "to": "",
+        "reg": false,
+        "x": 850,
+        "y": 820,
+        "wires": [
+            [
+                "66f1ad91aca94969"
+            ]
+        ]
+    },
+    {
+        "id": "5fcb6d46dc9a7e59",
+        "type": "inject",
+        "z": "2e403992682b1068",
+        "name": "",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": true,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "70",
+        "payloadType": "num",
+        "x": 970,
+        "y": 420,
+        "wires": [
+            [
+                "542d58a3bbf18a14"
+            ]
+        ]
+    },
+    {
+        "id": "7a0de34bc4d2e95d",
+        "type": "inject",
+        "z": "2e403992682b1068",
+        "name": "",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": true,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "30",
+        "payloadType": "num",
+        "x": 970,
+        "y": 480,
+        "wires": [
+            [
+                "e4cccb08d3dcb4a1"
+            ]
+        ]
+    },
+    {
+        "id": "64e84303be5ae7cc",
+        "type": "inject",
+        "z": "2e403992682b1068",
+        "name": "",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": true,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "0",
+        "payloadType": "num",
+        "x": 970,
+        "y": 240,
+        "wires": [
+            [
+                "842fb00fd1b918cf"
+            ]
+        ]
+    },
+    {
+        "id": "141ac2b630b3e4db",
+        "type": "link in",
+        "z": "2e403992682b1068",
+        "name": "link in 8",
+        "links": [
+            "f2ab518340045842"
+        ],
+        "x": 345,
+        "y": 840,
+        "wires": [
+            [
+                "0bc518ee6f4e8730"
+            ]
+        ]
+    }
+]
