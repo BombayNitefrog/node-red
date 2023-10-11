@@ -27,7 +27,7 @@
 | 6 | Holdnig | ( SNR + 100 ) * 10 (dB) |
 | 7 | Holding | 0 = OK, 1 = fault (5 hours since last packet) |
 | 8 | Holding | Spread Factor |
-| 9 | Holding | Light Level |
+| 9 | Holding | Light Level (0-5) |
 | 10 | Holding | Pressure * 10 (hPa) |
 | 11 | Holding | TVOC * 100 (ppm) |
-| 12 | Holding | Pir Trigger |
+| 12 | Holding | Pir Trigger (on/off) |
